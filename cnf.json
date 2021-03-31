@@ -1,0 +1,77 @@
+{
+    "groups": ["corp", "store"],
+    "nodes": [
+        {
+            "engine_name": "corp-000",
+            "group_id": "corp",
+            "type": "parent",
+            "external_id": "000",
+            "db_driver": "com.mysql.jdbc.Driver",
+            "db_url": "jdbc:mysql://localhost/corp?tinyInt1isBit=false",
+            "db_user": "symmetric",
+            "db_password": "symmetric",
+            "url": "http://localhost:31415/sync/corp-000"
+        },
+        {
+            "engine_name": "store-001",
+            "group_id": "store",
+            "type": "child",
+            "external_id": "001",
+            "db_driver": "com.mysql.jdbc.Driver",
+            "db_url": "jdbc:mysql://localhost/sotre?tinyInt1isBit=false",
+            "db_user": "symmetric",
+            "db_password": "symmetric",
+            "url": "http://localhost:31415/sync/corp-000"
+        }
+    ],
+    "group-links": [
+        {
+            "source": "store",
+            "target": "corp",
+            "option": "P"
+        },
+        {
+            "source": "store",
+            "target": "corp",
+            "option": "W"
+        }
+    ],
+    "replication-arch": "bi-directional",
+    "channels": [
+        { 
+            "id": "item",
+            "decription": "Item and pricing data"
+        },
+        { 
+            "id": "sale_transaction",
+            "decription": "retail sale transactions from register"
+        }
+    ],
+    "tables": [
+        {
+            "name": "item_selling_price",
+            "channel": "item",
+            "route": "parent-child",
+            "initial_load": 0
+        },
+        {
+            "name": "item",
+            "channel": "item",
+            "route": "parent-child",
+            "initial_load": 0
+        },
+        {
+            "name": "sale_transaction",
+            "channel": "sale_transaction",
+            "route": "child-parent",
+            "initial_load": 1,
+            "initial_load_route": "parent-child"
+        },
+        {
+            "name": "sale_return_line_item",
+            "channel": "sale_transaction",            
+            "initial_load": 1,
+            "initial_load_direction": "parent-child"
+        }
+    ]
+}
