@@ -58,7 +58,7 @@ class Configurator():
 
         Returns
         -------
-        Boolean
+        bool
             The object's properties validation result
         
         list
