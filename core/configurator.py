@@ -96,6 +96,16 @@ class Configurator():
             if node['group_id'] not in groups:
                 return False, f"Node {node['external_id']}'s assigned group '{node['group_id']}' is not in {groups}"
         
+        # Table validation
+        table_required_keys = ['name', 'channel', 'route']
+        for table in self.properties['tables']:
+            for key in table_required_keys:
+                if not key in table:
+                    return False, f"{table['name']}: '{key}' key is required for table configuration"
+            
+            #TODO Check required keys for initial load tables
+            
+        
         return True, "success"
 
     def parse_properties(self, path_to_json):
@@ -175,7 +185,29 @@ class Configurator():
         
     def build_router_trigger_queries(self):
         router_triggers = ''
-        return router_triggers
+        initial_load_router_triggers = ''
+
+        for table in self.properties['tables']:
+            if 'initial_load' in table and table['initial_load'] == 1:
+                if table['initial_load_route'] == 'parent-child':
+                    initial_load_router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
+                elif table['initial_load_route'] == 'child-parent':
+                    initial_load_router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
+
+            if self.properties['replication-arch'] == 'bi-directional':
+                if table['route'] == 'parent-child':
+                    router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
+                elif table['route'] == 'child-parent':
+                    router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
+
+
+            elif self.properties['replication-arch'] == 'parent-child':
+                 router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
+
+            elif self.properties['replication-arch'] == 'child-parent':
+                 router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
+
+        return router_triggers, initial_load_router_triggers
 
     def generate_node_property_files(self):
         """
