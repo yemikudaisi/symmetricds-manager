@@ -1,2 +1,1 @@
-from core.group_link_options import GroupLinkOptions
 from core.configurator import Configurator

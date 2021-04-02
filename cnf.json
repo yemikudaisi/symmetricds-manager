@@ -1,5 +1,16 @@
 {
-    "groups": ["corp", "store"],
+    "groups": [
+        {
+            "id": "corp",
+            "description": "Akilli Corporation",
+            "sync": "P"
+        },
+        {
+            "id":"store",
+            "description": "Akilli branch stores",
+            "sync": "W"
+        }
+    ],
     "nodes": [
         {
             "engine_name": "corp-000",
@@ -24,18 +35,6 @@
             "url": "http://localhost:31415/sync/corp-000"
         }
     ],
-    "group-links": [
-        {
-            "source": "store",
-            "target": "corp",
-            "option": "P"
-        },
-        {
-            "source": "store",
-            "target": "corp",
-            "option": "W"
-        }
-    ],
     "replication-arch": "bi-directional",
     "channels": [
         { 
@@ -51,14 +50,12 @@
         {
             "name": "item_selling_price",
             "channel": "item",
-            "route": "parent-child",
-            "initial_load": 0
+            "route": "parent-child"
         },
         {
             "name": "item",
             "channel": "item",
-            "route": "parent-child",
-            "initial_load": 0
+            "route": "parent-child"
         },
         {
             "name": "sale_transaction",
@@ -71,7 +68,7 @@
             "name": "sale_return_line_item",
             "channel": "sale_transaction",            
             "initial_load": 1,
-            "initial_load_direction": "parent-child"
+            "initial_load_route": "parent-child"
         }
     ]
 }

@@ -1,6 +1,9 @@
 from core import Configurator
-from core.sql_generator import create_single_channel_trigger
+from core.sql_generator import create_router, create_node_group_link
+import copy
 
 configurator = Configurator('cnf.json', 'build')
-print(configurator.generate_node_property_files())
-# print(create_single_channel_trigger('some_trigger','some','some'))
+x, y = configurator.build_table_trigger_queries()
+print(x)
+print(y)
+
