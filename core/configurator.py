@@ -119,17 +119,17 @@ class Configurator():
             self.properties = json.load(f)
 
     
-    def generate_sysmmetric_ds_files(self):
-        sql_mappings = {}
+    def generat_files(self):
+        self.generate_node_property_files()
 
-        sql_mappings['channel_list'], sql_mappings['channel'], = self.build_channel_query()
+        sql_mappings = {}
+        sql_mappings['channels_list'], sql_mappings['channel'], = self.build_channel_query()
         sql_mappings['group'], sql_mappings['group_links'], = self.build_group_queries()
         sql_mappings['table_triggers'], sql_mappings['initial_load_table_triggers'] = self.build_table_trigger_queries()
-        sql_mappings['router'], = self.build_router_query()
-        sql_mappings['router_triggers'], sql_mappings['initial_load_router_triggers'] = self.build_router_queries()
+        sql_mappings['router'] = self.build_router_query()
+        sql_mappings['router_triggers'], sql_mappings['initial_load_router_triggers'] = self.build_router_trigger_queries()
 
-        self.generate_node_property_files()
-        self.generate_sql_file()
+        self.generate_sql_file(sql_mappings)
     
     def build_channel_query(self) -> tuple[str, str]:
         channel_list =' '
@@ -150,7 +150,7 @@ class Configurator():
         for idx,group in enumerate(self.properties['groups']):
             # links
             groups_buffer = copy.copy(self.properties['groups'])
-            self.groups_buffer.pop(idx)
+            groups_buffer.pop(idx)
             for gp in groups_buffer:
                 gp_link_sql += f"{sql_generator.create_node_group_link(group['id'], gp['id'], group['sync'])}\n\n"
             
@@ -173,9 +173,9 @@ class Configurator():
         router_sql = ''
 
         if arch == 'bi-directional':
-            router_sql = f"{sql_generator.create_router('parent_2_child')}\n\n"
-            router_sql += f"{sql_generator.create_router('parent_2_master')}\n\n"
-            router_sql += f"{sql_generator.create_router('parent_2_one_child')}\n\n"
+            router_sql = f"{sql_generator.create_router('parent_2_child', self.parent_group, self.child_group)}\n\n"
+            router_sql += f"{sql_generator.create_router('child_2_parent', self.child_group, self.parent_group)}\n\n"
+            router_sql += f"{sql_generator.create_router('parent_2_one_child', self.child_group, self.parent_group, 'column')}\n\n" #TODO Implement column router generator
         elif arch == 'parent-child':
             router_sql = sql_generator.create_router('parent_2_child')
         elif arch == 'child-parent':
@@ -188,18 +188,12 @@ class Configurator():
         initial_load_router_triggers = ''
 
         for table in self.properties['tables']:
-            if 'initial_load' in table and table['initial_load'] == 1:
-                if table['initial_load_route'] == 'parent-child':
-                    initial_load_router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
-                elif table['initial_load_route'] == 'child-parent':
-                    initial_load_router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
-
+            initial_load_router_triggers += self.build_router_initial_load_trigger_query(table)
             if self.properties['replication-arch'] == 'bi-directional':
                 if table['route'] == 'parent-child':
                     router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
                 elif table['route'] == 'child-parent':
                     router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
-
 
             elif self.properties['replication-arch'] == 'parent-child':
                  router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
@@ -208,7 +202,20 @@ class Configurator():
                  router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
 
         return router_triggers, initial_load_router_triggers
+    
+    def build_router_initial_load_trigger_query(self, table):
+        query = ''
 
+        if 'initial_load' in table and table['initial_load'] == 1:
+            if table['initial_load_route'] == 'parent-child':
+                query = f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
+            elif table['initial_load_route'] == 'child-parent':
+                query = f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
+        
+        return query
+
+    parent_group = ''
+    child_group = ''
     def generate_node_property_files(self):
         """
         Generates property file for each node
@@ -218,8 +225,10 @@ class Configurator():
             parameters = {}
 
             if node['type'] == 'parent':
+                self.parent_group = node['group_id']
                 parameters = { **self.parent_node_default_properties, **node}
             else:
+                self.child_group = node['group_id']
                 parameters = { **self.child_node_default_properties, **node}
 
             # Substite template placeholders with generated parameter
@@ -236,11 +245,23 @@ class Configurator():
             with open(os.path.join(self.output_dir, f'{node["engine_name"]}.properties'), 'w') as node_properties_file:
                             node_properties_file.writelines(result)
     
-    def generate_sql_file(self):
-         """
-         Generates SQL queries necessary for SymmetricDS to function appropriately
-         """
-         self.generate_routers()
+    def generate_sql_file(self, mappings):
+        """
+        Generates SQL queries necessary for SymmetricDS to function appropriately
+        """
+        result =''
+        try:
+            with open('templates\sql.st', 'r') as template_file:
+                src = Template(template_file.read())            
+                result = src.substitute(mappings)
+        except FileNotFoundError:
+            print(f"SQL template file not found")
+        except Exception as e:
+            print(f"Unable to generate sql template: {e}")
+
+        # Writes propertes file for node
+        with open(os.path.join(self.output_dir, 'symmetricds.sql'), 'w') as node_properties_file:
+            node_properties_file.writelines(result)
 
 
 
