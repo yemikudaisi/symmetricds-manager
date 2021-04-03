@@ -1,7 +1,9 @@
-from core import Configurator
+from core import ReplicationBuilder
 from core.sql_generator import create_router, create_node_group_link
-import copy
+from core import Validator
 
-configurator = Configurator('cnf.json', 'build')
-configurator.generat_files();
-
+if __name__ == '__main__':
+    v = Validator({})
+    print(v.validate())
+    # builder = ReplicationBuilder('cnf.json', 'build')
+    # builder.generate_files();

@@ -36,8 +36,7 @@ $initial_load_table_triggers
 ------------------------------------------------------------------------------
 -- Routers
 ------------------------------------------------------------------------------
-
--- Default router sends all data from corp to store 
+-- Default router sends all data from parent to child 
 $router
 ------------------------------------------------------------------------------
 -- Trigger Routers

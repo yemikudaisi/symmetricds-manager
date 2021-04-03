@@ -6,7 +6,9 @@ from core import sql_generator
 
 # Output: {'name': 'Bob', 'languages': ['English', 'Fench']}
 
-class Configurator():
+class ReplicationBuilder():
+    """Generates SymmetricDS replication files based on JSON config
+    """
 
     child_node_default_properties = {}
     parent_node_default_properties = {}
@@ -119,7 +121,7 @@ class Configurator():
             self.properties = json.load(f)
 
     
-    def generat_files(self):
+    def generate_files(self):
         self.generate_node_property_files()
 
         sql_mappings = {}
