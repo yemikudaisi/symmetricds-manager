@@ -4,6 +4,6 @@ from core import Validator
 
 if __name__ == '__main__':
     v = Validator({})
-    print(v.validate())
-    # builder = ReplicationBuilder('cnf.json', 'build')
-    # builder.generate_files();
+    # print(v.validate())
+    builder = ReplicationBuilder('cnf.json', 'build')
+    builder.generate_files();
