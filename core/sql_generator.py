@@ -46,5 +46,9 @@ def create_table_load_only_trigger(tbl) -> str:
 def create_router(router_id, source_node_group_id, target_node_group_id, router_type = 'default') -> str:
     return f"insert into sym_router (router_id,source_node_group_id,target_node_group_id,router_type,create_time,last_update_time) values ('{router_id}','{source_node_group_id}','{target_node_group_id}','{router_type}',current_timestamp,current_timestamp);"
 
+def create_column_router(router_id, source_node_group_id, target_node_group_id, router_type = 'column', expression="" ) -> str:
+    # TODO Unit tests
+    return f"insert into sym_router (router_id,source_node_group_id,target_node_group_id,router_type,router_expression,create_time,last_update_time) values ('{router_id}','{source_node_group_id}','{target_node_group_id}','{router_type}','{expression}',current_timestamp,current_timestamp);"
+
 def create_router_trigger(trigger_id, router_id, initial_load_order = 100):
     return f"insert into sym_trigger_router (trigger_id,router_id,initial_load_order,last_update_time,create_time) values ('{trigger_id}','{router_id}',{initial_load_order},current_timestamp,current_timestamp);"
