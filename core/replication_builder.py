@@ -14,18 +14,14 @@ class ReplicationBuilder():
     child_node_default_properties = {}
     parent_node_default_properties = {}
 
-    def __init__(self, properties, output_dir) -> None:
+    def __init__(self, properties, output_dir=None) -> None:
         
         self.parse_properties(properties)
         result, txt = Validator(self.properties).validate()
         if not result:
             raise ValueError(f"Validation failed: {txt}")
-        
-        if output_dir is None:
-            self.output_dir = os.getcwd()
-        else:
-            self.output_dir = output_dir
 
+        self.output_dir = output_dir
         self.common_default_properties = {
             "job_routing_period_time_ms":5000,
             "job_push_period_time_ms":10000,
@@ -176,9 +172,12 @@ class ReplicationBuilder():
             except Exception:
                 print(f"Unable to generate {node['type']} template for {node['external_id']}")
 
-            # Writes propertes file for node
-            with open(os.path.join(self.output_dir, f'{node["engine_name"]}.properties'), 'w') as node_properties_file:
-                            node_properties_file.writelines(result)
+            if self.output_dir != None:
+                # Writes propertes file for node
+                with open(os.path.join(self.output_dir, f'{node["engine_name"]}.properties'), 'w') as node_properties_file:
+                                node_properties_file.writelines(result)
+            else:
+                print(result)
     
     def generate_sql_file(self, mappings):
         """
@@ -194,9 +193,12 @@ class ReplicationBuilder():
         except Exception as e:
             print(f"Unable to generate sql template: {e}")
 
-        # Writes propertes file for node
-        with open(os.path.join(self.output_dir, 'symmetricds.sql'), 'w') as node_properties_file:
-            node_properties_file.writelines(result)
+        if self.output_dir != None:
+            # Writes propertes file for node
+            with open(os.path.join(self.output_dir, 'symmetricds.sql'), 'w') as node_properties_file:
+                node_properties_file.writelines(result)
+        else:
+            print(result)
 
 
 
