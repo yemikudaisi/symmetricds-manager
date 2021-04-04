@@ -40,7 +40,7 @@ def create_table_load_only_trigger(tbl) -> str:
     This does not carry out validation, user are to ensure validation 
     before passing table dictionary to this method
     """
-    trigger_id = f"{tbl['name']}_{tbl['initial_load_route'].split('-')[0]}"
+    trigger_id = f"{tbl['name']}_{tbl['initial-load-route'].split('-')[0]}"
     return f"insert into sym_trigger (trigger_id,source_table_name,channel_id, sync_on_insert, sync_on_update, sync_on_delete,last_update_time,create_time) values ('{trigger_id}','{tbl['name']}','{tbl['channel']}',0,0,0,current_timestamp,current_timestamp);"
 
 def create_router(router_id, source_node_group_id, target_node_group_id, router_type = 'default') -> str:

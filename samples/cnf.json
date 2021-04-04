@@ -61,15 +61,15 @@
             "name": "sale_transaction",
             "channel": "sale_transaction",
             "route": "child-parent",
-            "initial_load": 1,
-            "initial_load_route": "parent-child"
+            "initial-load": 1,
+            "initial-load-route": "parent-child"
         },
         {
             "name": "sale_return_line_item",
             "channel": "sale_transaction",
             "route": "child-parent",            
-            "initial_load": 1,
-            "initial_load_route": "parent-child"
+            "initial-load": 1,
+            "initial-load-route": "parent-child"
         }
     ]
 }

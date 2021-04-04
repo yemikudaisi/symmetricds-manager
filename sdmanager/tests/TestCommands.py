@@ -1,5 +1,5 @@
 import unittest
-from manager import manager
+from sdmanager import manager
 from click.testing import CliRunner
 
 class TestCommands(unittest.TestCase):

@@ -1,6 +1,6 @@
 import configparser
 import subprocess
-from manager.core import ReplicationBuilder
+from sdmanager.core import ReplicationBuilder
 import click
 
 config_parser = configparser.ConfigParser()
@@ -15,13 +15,13 @@ def cli():
 @cli.command()
 @click.option('-p', '--properties', required=True, help='Manager replication properties file.')
 @click.option('-o', '--output', help='Symmetric DS files Output directory to save SymmetricDS files.')
-def main(confif, output=None):
+def build(config, output=None):
     sd_home = None
     if 'SYMMETRICDS' in config_parser.sections():
         sd_home = config_parser['SYMMETRICDS']['HomeDirectory']
     print(f"Using SymmetricDS home at {sd_home}")
   
-    builder = ReplicationBuilder(conf, output)
+    builder = ReplicationBuilder(config, output)
     builder.generate_files();
 
 @cli.command()  # @cli, not @click!

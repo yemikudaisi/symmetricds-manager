@@ -1,9 +1,10 @@
 import json
 import os
 import copy
+import sys
 from string import Template
-from manager.core import sql_generator, validator
-from manager.core import Validator
+from sdmanager.core import sql_generator, validator
+from sdmanager.core import Validator
 
 # Output: {'name': 'Bob', 'languages': ['English', 'Fench']}
 
@@ -46,9 +47,11 @@ class ReplicationBuilder():
         json : str
             Path to JSON file to be parsed for properties
         """
-        with open(path_to_json) as f:
-            self.properties = json.load(f)
-
+        try:
+            with open(path_to_json) as f:
+                self.properties = json.load(f)
+        except Exception as e:
+            sys.exit(f"Unable to upon supplied config file: {e}")
     
     def generate_files(self):
         self.generate_node_property_files()
@@ -94,7 +97,7 @@ class ReplicationBuilder():
         load_only_table_triggers = ''
         for table in self.properties['tables']:
             table_trigger += f"{sql_generator.create_table_trigger(table)}\n\n"
-            if 'initial_load' in table and table['initial_load']:
+            if 'initial-load' in table and table['initial-load']:
                 load_only_table_triggers += f"{sql_generator.create_table_load_only_trigger(table)}\n\n"
 
         return table_trigger, load_only_table_triggers
@@ -137,10 +140,10 @@ class ReplicationBuilder():
     def build_router_initial_load_trigger_query(self, table):
         query = ''
 
-        if 'initial_load' in table and table['initial_load'] == 1:
-            if table['initial_load_route'] == 'parent-child':
+        if 'initial-load' in table and table['initial-load'] == 1:
+            if table['initial-load-route'] == 'parent-child':
                 query = f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
-            elif table['initial_load_route'] == 'child-parent':
+            elif table['initial-load-route'] == 'child-parent':
                 query = f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
         
         return query
@@ -148,6 +151,7 @@ class ReplicationBuilder():
     parent_group = ''
     child_group = ''
     def generate_node_property_files(self):
+        print(os.environ['SDMANAGER_BASE_DIR'])
         """
         Generates property file for each node
         """
@@ -164,7 +168,7 @@ class ReplicationBuilder():
 
             # Substite template placeholders with generated parameter
             try:
-                with open(f"templates\{node['type']}.st", 'r') as template_file:
+                with open(os.path.join(os.environ['SDMANAGER_BASE_DIR'], 'templates', f"{node['type']}.st"), 'r') as template_file:
                     src = Template(template_file.read())            
                     result = src.substitute(parameters)
             except FileNotFoundError:
@@ -185,7 +189,7 @@ class ReplicationBuilder():
         """
         result =''
         try:
-            with open('templates\sql.st', 'r') as template_file:
+            with open(os.path.join(os.environ['SDMANAGER_BASE_DIR'], 'templates', 'sql.st'), 'r') as template_file:
                 src = Template(template_file.read())            
                 result = src.substitute(mappings)
         except FileNotFoundError:
@@ -199,7 +203,3 @@ class ReplicationBuilder():
                 node_properties_file.writelines(result)
         else:
             print(result)
-
-
-
-        
