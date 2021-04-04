@@ -2,8 +2,8 @@ import json
 import os
 import copy
 from string import Template
-from core import sql_generator, validator
-from core import Validator
+from manager.core import sql_generator, validator
+from manager.core import Validator
 
 # Output: {'name': 'Bob', 'languages': ['English', 'Fench']}
 
