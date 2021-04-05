@@ -111,9 +111,9 @@ class ReplicationBuilder():
             router_sql += f"{sql_generator.create_router('child_2_parent', self.child_group, self.parent_group)}\n\n"
             router_sql += f"{sql_generator.create_router('parent_2_one_child', self.child_group, self.parent_group, 'column')}\n\n" #TODO Implement column router generator
         elif arch == 'parent-child':
-            router_sql = sql_generator.create_router('parent_2_child')
+            router_sql = sql_generator.create_router('parent_2_child',self.parent_group, self.child_group)
         elif arch == 'child-parent':
-            router_sql =sql_generator.create_router('child_2_parent')
+            router_sql =sql_generator.create_router('child_2_parent', self.child_group, self.parent_group)
         
         return router_sql
         

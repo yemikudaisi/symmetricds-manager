@@ -107,8 +107,10 @@ class Validator():
         for table in self.properties['tables']:
             for key in table_required_keys:
                 if not key in table:
-                    return False, f"{table['name']}: '{key}' key is required for table configuration"
+                    arch = self.properties['replication-arch']
+                    if ( arch != 'parent-child' and arch != 'child-parent') and key in ['route'] : # table expetions
+                        return False, f"{table['name']}: '{key}' key is required for table configuration{arch}"
             
-            #TODO Check required keys for initial load tables
+            #TODO Code smell ? Check required keys for initial load tables
         
         return self.success()

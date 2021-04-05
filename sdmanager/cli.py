@@ -14,7 +14,7 @@ def cli():
 
 @cli.command()
 @click.option('-p', '--properties', required=True, help='Manager replication properties JSON file.')
-@click.option('-o', '--output', help='Symmetric DS files output directory.')
+@click.option('-o', '--output', help="SymmetricDS files' output directory.")
 def build_files(properties, output=None):
     builder = ReplicationBuilder(properties, output)
     builder.generate_files();
