@@ -57,9 +57,21 @@ class TestSQLValidator(unittest.TestCase):
             (False, "Synchronization mode of P, W or R is required for group configuration")
         )
     
-    def test_fail_if_not_unique_gp_id(self):
-        """Test that validation will fail if group key is not unique"""
-        self.assertEqual(True, False)
+    def test_fail_if_not_unique_gp_id(self):        
+        """Test that validation will fail if duplicate group id exists"""
+        props = {
+            "groups": [{'id':'1','sync':'P'},{'id':'1','sync':'P'}],
+        }
+        validator = Validator(props)
+        self.assertEqual(validator.validate_groups(), (False, 'Group ID must be unique'))
+    
+    def test_pass_gp_validation(self):        
+        """Test that validation passes if all group requirement are met"""
+        props = {
+            "groups": [{'id':'1','sync':'P'},{'id':'2','sync':'P'}],
+        }
+        validator = Validator(props)
+        self.assertEqual(validator.validate_groups(), (True, 'Valid'))
 
 if __name__ == '__main__':
     unittest.main()

@@ -84,6 +84,11 @@ class Validator():
             if group['sync'] not in ['P', 'W', 'R']:
                 return False, 'Synchronization mode of P, W or R is required for group configuration'
         
+        group_ids = [gp['id'] for gp in self.properties['groups']]
+        contains_duplicates = any(group_ids.count(element) > 1 for element in group_ids)
+        if contains_duplicates:
+            return False, 'Group ID must be unique'
+        
         return self.success()
     
     def validate_nodes(self) -> tuple[ bool, str]:
