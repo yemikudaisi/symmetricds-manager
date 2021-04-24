@@ -94,16 +94,28 @@ class Validator():
     def validate_nodes(self) -> tuple[ bool, str]:
         
         if len(self.properties['nodes']) < 2:
-           return False, 'minimum of 2 nodes required'
-
-        node_types = [node['group_id'] for node in self.properties['nodes']]
-        if not all(item in ['parent', 'child'] for item in node_types):
-            return False, "A minimum of one 'parent' node and one 'child' node is required."
+           return False, 'Minimum of 2 nodes required.'
 
         for node in self.properties['nodes']:
             result, error = self.validate_node(node)
             if not result:
                 return result, error
+
+        node_groups = [node['group_id'] for node in self.properties['nodes']]
+        node_groups = list(dict.fromkeys(node_groups))
+        if len(node_groups) < 2:
+            return False, "Minimum of 2 node groups required."
+
+        node_engine_names = [n['engine_name'] for n in self.properties['nodes']]
+        contains_duplicate_engine_name = any(node_engine_names.count(element) > 1 for element in node_engine_names)
+        if contains_duplicate_engine_name:
+            return False, 'Node engine name must be unique.'
+        
+        node_external_id_list = [n['external_id'] for n in self.properties['nodes']]
+        contains_duplicate_external_id= any(node_external_id_list.count(element) > 1 for element in node_external_id_list)
+        if contains_duplicate_external_id:
+            return False, 'Node external ID must be unique.'
+            
         return self.success()
     
     def validate_node(self, node):
@@ -115,22 +127,25 @@ class Validator():
         Returns:
             tuple[bool, str]: A tuple of validation result and message
         """
-        node_required_keys = ['engine_name', 'external_id', 'type', 'db_driver', 'db_url', 'db_user', 'db_password']
+        node_required_keys = ['engine_name', 'group_id', 'external_id', 'type', 'db_driver', 'db_url', 'db_user', 'db_password']
         for key in node_required_keys:
             if not key in node:
-                return False, f"'{key}' key is required for node configuration"
+                return False, f"'{key}' field is required for node configuration"
             
-            if not node['type'] or node['type'] not in ['parent', 'child', 'router'] in node:
-                return False, "Type of 'parent', 'child' or 'router' is required for node configurations"
+            if not node[key]:
+                return False, f"Required field ({key}) must not be empty"
             
-            if node['type'] == 'parent' and not 'url' in node:
-                    return False, "A parent node must have a synchronization url"
-            
-            if node['type'] == 'parent' and not 'url' in node:
-                    return False, "A child node must have a replication url"
-            
-            if node['group_id'] not in self.groups:
-                return False, f"Node {node['external_id']}'s assigned group '{node['group_id']}' is not in {self.groups}"
+        if node['type'] not in ['parent', 'child', 'router']:
+            return False, "Type of 'parent', 'child' or 'router' is required for node configurations"
+        
+        if node['type'] == 'parent' and not 'url' in node:
+                return False, "A parent node must have a synchronization url"
+        
+        if node['type'] == 'type' and not 'url' in node:
+                return False, "A child node must have a replication url"
+        
+        if node['group_id'] not in self.groups:
+            return False, f"Node {node['external_id']}'s assigned group '{node['group_id']}' is not in {self.groups}"
 
         return self.success()
 
