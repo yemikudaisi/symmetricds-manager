@@ -26,31 +26,40 @@ def run():
     print(result)
 
 @cli.command()
-@click.argument('section', required=True)
-def set_config(section: str) -> None:
-    """gets a specific config value from INI file
+@click.argument('key', required=True)
+@click.argument('value', required=True)
+def set_config(key: str, value: str) -> None:
+    """Set a config value for supplied INI section-key name/key combination.
 
     Args:
-        section (str): Section hierarchy in INI file separate by dot ('.').
-        Exampe: Section `foo.bar` will translate to the below in INI config
-        [foo]
-        bar = 'Hello Worl'
+        key (str): Compination of INI section and key separated by dot ('.').
+        value (str): value to saved in given key in the config file.
         
-        $ > manager get-config foo.bar
-        Hello World
+    Example
+    --------
+    For example, the command below will generate the following INI
+    $ > manager set-config foo.bar "Hello World!"
+    `conf.ini`
+    [foo]
+    bar = Hello World
     """
-    sections = section.split('.')
-    if sections[0] in config_parser.sections():
-        value = config_parser[sections[0]][sections[1]]
-    else:
-        click.echo('Configuration not found')
-    # TODO Exception check
-    click.echo(value)
+    sections = key.split('.')
+    if (len(sections) != 2):
+        click.echo("Comibation of INI section and key separated by '.' required.")
+        return
+
+    config_parser.read_dict({
+        sections[0] : {
+            sections[1] : value
+        }
+    })
+    with open('conf.ini', 'w') as configfile:
+        config_parser.write(configfile)
 
 @cli.command()
 @click.argument('key', required=True)
 def get_config(key: str) -> None:
-    """gets a specific config value from INI file
+    """gets a config value from INI section-key combination.
 
     Args:
         key (str): Compination of INI section and key separated by dot ('.').

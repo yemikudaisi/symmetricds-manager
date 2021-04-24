@@ -3,8 +3,7 @@ import os
 import copy
 import sys
 from string import Template
-from sdmanager.core import sql_generator, validator
-from sdmanager.core import Validator
+from sdmanager.core import Validator, sql_generator
 
 # Output: {'name': 'Bob', 'languages': ['English', 'Fench']}
 
@@ -20,7 +19,7 @@ class ReplicationBuilder():
         self.parse_properties(properties)
         result, txt = Validator(self.properties).validate()
         if not result:
-            raise ValueError(f"Validation failed: {txt}")
+            raise ValueError(f"Validation Error: {txt}")
 
         self.output_dir = output_dir
         self.common_default_properties = {
@@ -57,25 +56,13 @@ class ReplicationBuilder():
         self.generate_node_property_files()
 
         sql_mappings = {}
-        sql_mappings['channels_list'], sql_mappings['channel'], = self.build_channel_query()
         sql_mappings['group'], sql_mappings['group_links'], = self.build_group_queries()
+        sql_mappings['channels_list'], sql_mappings['channel'], = self.build_channel_query()
         sql_mappings['table_triggers'], sql_mappings['initial_load_table_triggers'] = self.build_table_trigger_queries()
         sql_mappings['router'] = self.build_router_query()
         sql_mappings['router_triggers'], sql_mappings['initial_load_router_triggers'] = self.build_router_trigger_queries()
 
         self.generate_sql_file(sql_mappings)
-    
-    def build_channel_query(self) -> tuple[str, str]:
-        channel_list =' '
-        channel_sql = ''
-        for idx,channel in enumerate(self.properties['channels']):
-
-            channel_sql += f"{sql_generator.create_channel(channel['id'])}\n\n"
-            channel_list += f"'{channel['id']}'"
-            if (idx + 1) != len(self.properties['channels']):
-                channel_list += ","
-
-        return channel_list, channel_sql
     
     def build_group_queries(self) -> tuple[str, str]:
         gp_link_sql = ''
@@ -91,6 +78,18 @@ class ReplicationBuilder():
             gp_sql += f"{sql_generator.create_node_group(group['id'], ['description'])}\n\n"
         
         return gp_sql, gp_link_sql
+    
+    def build_channel_query(self) -> tuple[str, str]:
+        channel_list =' '
+        channel_sql = ''
+        for idx,channel in enumerate(self.properties['channels']):
+
+            channel_sql += f"{sql_generator.create_channel(channel['id'])}\n\n"
+            channel_list += f"'{channel['id']}'"
+            if (idx + 1) != len(self.properties['channels']):
+                channel_list += ","
+
+        return channel_list, channel_sql
     
     def build_table_trigger_queries(self) -> tuple[str, str]:
         table_trigger = ''

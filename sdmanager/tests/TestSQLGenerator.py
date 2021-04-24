@@ -1,5 +1,5 @@
 import unittest
-from core import sql_generator
+from sdmanager.core import sql_generator
 
 class TestSQLGenerator(unittest.TestCase):
 
