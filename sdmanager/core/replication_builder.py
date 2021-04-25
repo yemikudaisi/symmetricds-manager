@@ -3,10 +3,44 @@ import os
 import copy
 import sys
 from string import Template
+from typing import Any
 from sdmanager.core import Validator, sql_generator
 
 # Output: {'name': 'Bob', 'languages': ['English', 'Fench']}
+class GroupNodeMediator:
 
+    master_group_id: str = ''
+    child_groups_id: list[str] = []
+    master_node: dict[str, str] = {}
+    children_nodes: list[dict[str, str]] = []
+    def __init__(self, groups: list[dict[str, Any]]):
+        """Acts as mediator for referencing a replication project's
+        groups and node.
+
+        Args:
+            groups (list[dict[str, Any]]): A list of groups/node hierarchy for a replication project
+        """
+        for g in groups:
+            if g['type'] == 'parent':
+                self.master_group_id = g['id']
+                # assuming validator has ensured there is one node in
+                # master group
+                self.master_node = g['nodes'][0]
+            else:
+                for n in g['nodes']:
+                    self.children_nodes.append(n)
+                self.child_groups_id.append(g['id'])
+    @property
+    def all_nodes(self) -> list[dict[str, Any]]:
+        """ Generates a collection of all nodes regardless of group
+
+        Returns:
+            list[dict[str, Any]]: Collection of all replication nodes
+        """
+        return [self.master_node] + self.children_nodes
+
+class NotImplementationException(Exception):
+    pass
 class ReplicationBuilder():
     """Generates SymmetricDS replication files based on JSON config
     """
@@ -20,6 +54,8 @@ class ReplicationBuilder():
         result, txt = Validator(self.properties).validate()
         if not result:
             raise ValueError(f"Validation Error: {txt}")
+
+        self.mediator = GroupNodeMediator(self.properties['groups'])
 
         self.output_dir = output_dir
         self.common_default_properties = {
@@ -38,6 +74,7 @@ class ReplicationBuilder():
                 "initial_load_create_first":"true"
             }
         }
+
 
     def parse_properties(self, path_to_json):
         """
@@ -102,18 +139,21 @@ class ReplicationBuilder():
         return table_trigger, load_only_table_triggers
 
     def build_router_query(self)  -> str:
-        arch = self.properties['replication-arch']
+        arch = self.properties['project']['architecture']
         router_sql = ''
 
-        if arch == 'bi-directional':
-            router_sql = f"{sql_generator.create_router('parent_2_child', self.parent_group, self.child_group)}\n\n"
-            router_sql += f"{sql_generator.create_router('child_2_parent', self.child_group, self.parent_group)}\n\n"
-            router_sql += f"{sql_generator.create_router('parent_2_one_child', self.child_group, self.parent_group, 'column')}\n\n" #TODO Implement column router generator
-        elif arch == 'parent-child':
-            router_sql = sql_generator.create_router('parent_2_child',self.parent_group, self.child_group)
-        elif arch == 'child-parent':
-            router_sql =sql_generator.create_router('child_2_parent', self.child_group, self.parent_group)
-        
+        if arch == 'parent->child':
+            for g in self.mediator.child_groups_id:
+                router_sql += f"{sql_generator.create_default_router(f'{self.mediator.master_group_id}_2_{g}', self.mediator.master_group_id, g)}\n\n"
+                router_sql += f"{sql_generator.create_default_router(f'{g}_2_{self.mediator.master_group_id}', g, self.mediator.master_group_id)}\n\n"
+                expression = 'STORE_ID=:EXTERNAL_ID or OLD_STORE_ID=:EXTERNAL_ID'
+                router_sql += f"{sql_generator.create_column_router(f'{self.mediator.master_group_id}_2_one_{g}', self.mediator.master_group_id, g, expression)}\n\n" #TODO Implement column router generator
+        elif arch == 'parent<-child':
+            for g in self.mediator.child_groups_id:
+                router_sql += f"{sql_generator.create_default_router(f'{self.mediator.master_group_id}_2_{g}', self.mediator.master_group_id, g)}\n\n"
+                router_sql += f"{sql_generator.create_default_router(f'{g}_2_{self.mediator.master_group_id}', g, self.mediator.master_group_id)}\n\n"
+        elif arch =='parent<->parent':
+            raise Exception('Parent to parent architecture has not been implemented')
         return router_sql
         
     def build_router_trigger_queries(self):
@@ -147,8 +187,6 @@ class ReplicationBuilder():
         
         return query
 
-    parent_group = ''
-    child_group = ''
     def generate_node_property_files(self):
         print(os.environ['SDMANAGER_BASE_DIR'])
         """
@@ -159,10 +197,8 @@ class ReplicationBuilder():
             parameters = {}
 
             if node['type'] == 'parent':
-                self.parent_group = node['group_id']
                 parameters = { **self.parent_node_default_properties, **node}
             else:
-                self.child_group = node['group_id']
                 parameters = { **self.child_node_default_properties, **node}
 
             # Substite template placeholders with generated parameter

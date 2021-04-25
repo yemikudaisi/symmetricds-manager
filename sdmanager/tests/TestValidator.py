@@ -55,7 +55,7 @@ class TestValidator(unittest.TestCase):
             (False, "'sync' key is required for group configuration")
         )
     def test_fail_if_reqd_group_id_empty(self):
-        """Tests that validation will fail if a required field's value is empty"""
+        """Tests that validation will fail if a group ID field value is empty"""
         props = {
             "groups": [{'id': 'pak', 'sync':'W'},{'id': '','sync': 'P'}]
         }

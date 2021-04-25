@@ -43,12 +43,12 @@ def create_table_load_only_trigger(tbl) -> str:
     trigger_id = f"{tbl['name']}_{tbl['initial-load-route'].split('-')[0]}"
     return f"insert into sym_trigger (trigger_id,source_table_name,channel_id, sync_on_insert, sync_on_update, sync_on_delete,last_update_time,create_time) values ('{trigger_id}','{tbl['name']}','{tbl['channel']}',0,0,0,current_timestamp,current_timestamp);"
 
-def create_router(router_id, source_node_group_id, target_node_group_id, router_type = 'default') -> str:
-    return f"insert into sym_router (router_id,source_node_group_id,target_node_group_id,router_type,create_time,last_update_time) values ('{router_id}','{source_node_group_id}','{target_node_group_id}','{router_type}',current_timestamp,current_timestamp);"
+def create_default_router(router_id, source_node_group_id, target_node_group_id) -> str:
+    return f"insert into sym_router (router_id,source_node_group_id,target_node_group_id,router_type,create_time,last_update_time) values ('{router_id}','{source_node_group_id}','{target_node_group_id}','default',current_timestamp,current_timestamp);"
 
-def create_column_router(router_id, source_node_group_id, target_node_group_id, router_type = 'column', expression="" ) -> str:
+def create_column_router(router_id, source_node_group_id, target_node_group_id, expression="" ) -> str:
     # TODO Unit tests
-    return f"insert into sym_router (router_id,source_node_group_id,target_node_group_id,router_type,router_expression,create_time,last_update_time) values ('{router_id}','{source_node_group_id}','{target_node_group_id}','{router_type}','{expression}',current_timestamp,current_timestamp);"
+    return f"insert into sym_router (router_id,source_node_group_id,target_node_group_id,router_type,router_expression,create_time,last_update_time) values ('{router_id}','{source_node_group_id}','{target_node_group_id}','column','{expression}',current_timestamp,current_timestamp);"
 
 def create_router_trigger(trigger_id, router_id, initial_load_order = 100):
     return f"insert into sym_trigger_router (trigger_id,router_id,initial_load_order,last_update_time,create_time) values ('{trigger_id}','{router_id}',{initial_load_order},current_timestamp,current_timestamp);"

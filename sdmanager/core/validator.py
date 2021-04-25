@@ -19,6 +19,9 @@ class Validator():
         - if duplicate node engine names exists in replication properties, fail
         - if node type not 'parent' or 'child' fail
 
+        - check that only one group is parent
+        - check that parent group contains only one node
+
         Otherwise, check that all other required parameters with 
         the replication properties
 
@@ -166,8 +169,8 @@ class Validator():
             for key in table_required_keys:
                 if not key in table:
                     arch = self.properties['replication-arch']
-                    # If architecture is not parent-child or child-parent
-                    # A route as to be specified as well
+                    # For master to master a route has to be specified
+                    # a route as to be specified as well
                     if ( arch != 'parent-child' and arch != 'child-parent') and key in ['route'] : # table exceptions
                         return False, f"{table['name']}: '{key}' key is required for table configuration{arch}"
             
