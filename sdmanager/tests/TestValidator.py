@@ -54,6 +54,15 @@ class TestValidator(unittest.TestCase):
         self.assertEqual(validator.validate_groups(), 
             (False, "'sync' key is required for group configuration")
         )
+    def test_fail_if_reqd_group_id_empty(self):
+        """Tests that validation will fail if a required field's value is empty"""
+        props = {
+            "groups": [{'id': 'pak', 'sync':'W'},{'id': '','sync': 'P'}]
+        }
+        validator = Validator(props)
+        self.assertEqual(validator.validate_groups(), 
+            (False, "Required group field (id) must not be empty")
+        )
 
     def test_fail_if_invalid_gp_sync(self):
         """Test that validation will fail for invalid group 'sync' property"""
@@ -120,8 +129,8 @@ class TestValidator(unittest.TestCase):
     def test_fail_if_reqd_node_field_empty(self):
         """Tests that validation will fail if a required field's value is empty"""
         node =  {
-            "group_id": "",
-            "engine_name": "corp",
+            "group_id": "car",
+            "engine_name": "",
             "type": "parent",
             "external_id": "000",
             "db_driver": self._DB_DRIVER,
@@ -132,7 +141,7 @@ class TestValidator(unittest.TestCase):
         validator = Validator({})
         validator.groups = ['corp', 'store']
         self.assertEqual(validator.validate_node(node), 
-            (False, "Required field (group_id) must not be empty")
+            (False, "Required node field (engine_name) must not be empty")
         )
     
     def test_fail_if_invalid_node_type(self):

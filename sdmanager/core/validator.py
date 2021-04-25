@@ -79,6 +79,9 @@ class Validator():
                 if not key in group:
                     return False, f"'{key}' key is required for group configuration"
             
+            if not group['id']:
+                return False, 'Required group field (id) must not be empty'
+            
             self.groups.append(group['id'])
 
             if group['sync'] not in ['P', 'W', 'R']:
@@ -133,7 +136,7 @@ class Validator():
                 return False, f"'{key}' field is required for node configuration"
             
             if not node[key]:
-                return False, f"Required field ({key}) must not be empty"
+                return False, f"Required node field ({key}) must not be empty"
             
         if node['type'] not in ['parent', 'child', 'router']:
             return False, "Type of 'parent', 'child' or 'router' is required for node configurations"
@@ -163,7 +166,9 @@ class Validator():
             for key in table_required_keys:
                 if not key in table:
                     arch = self.properties['replication-arch']
-                    if ( arch != 'parent-child' and arch != 'child-parent') and key in ['route'] : # table expetions
+                    # If architecture is not parent-child or child-parent
+                    # A route as to be specified as well
+                    if ( arch != 'parent-child' and arch != 'child-parent') and key in ['route'] : # table exceptions
                         return False, f"{table['name']}: '{key}' key is required for table configuration{arch}"
             
             #TODO Code smell ? Check required keys for initial load tables
