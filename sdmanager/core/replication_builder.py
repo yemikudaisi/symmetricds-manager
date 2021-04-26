@@ -4,15 +4,29 @@ import copy
 import sys
 from string import Template
 from typing import Any
-from sdmanager.core import Validator, sql_generator
+from sdmanager.core import Validator, sql_generator, utils
+from enum import Enum
+
+class Architecture:
+    """Replication architecture types
+    
+    note an enum, for simple serialization and deserialization
+    """
+    PARENT_2_CHILD = 0
+    CHILD_2_PARENT = 1
+    BIDIRECTIONAL = 2
+
+class GroupType:
+    """Group types"""
+    PARENT = 0
+    CHILD = 1
+    LOAD_ONLY = 2
 
 # Output: {'name': 'Bob', 'languages': ['English', 'Fench']}
 class GroupNodeMediator:
 
-    master_group_id: str = ''
-    child_groups_id: list[str] = []
-    master_node: dict[str, str] = {}
-    children_nodes: list[dict[str, str]] = []
+    parent_group = None
+    child_group = None
     def __init__(self, groups: list[dict[str, Any]]):
         """Acts as mediator for referencing a replication project's
         groups and node.
@@ -21,15 +35,25 @@ class GroupNodeMediator:
             groups (list[dict[str, Any]]): A list of groups/node hierarchy for a replication project
         """
         for g in groups:
-            if g['type'] == 'parent':
-                self.master_group_id = g['id']
-                # assuming validator has ensured there is one node in
-                # master group
-                self.master_node = g['nodes'][0]
+            nodes = []
+            group = utils.new_object("Group", g)
+            if group.type == GroupType.PARENT:
+                self.parent_group = group
+                nodes.append(utils.new_object("Node", g['nodes'][0])) # assuming validator has ensured there is one node in master group
             else:
-                for n in g['nodes']:
-                    self.children_nodes.append(n)
-                self.child_groups_id.append(g['id'])
+                self.child_group = utils.new_object('Group', g)
+                for node in g['nodes']:
+                    try:
+                        nodes.append(utils.new_object('Node', node))
+                    except AttributeError as e:
+                        print(e)
+                        print(node)
+            group.nodes.clear()
+            group.nodes.extend(nodes)
+        
+    def __repr__(self) -> str:
+        return f"parent:{self.parent_group.id}, child:{self.child_group.id}"
+
     @property
     def all_nodes(self) -> list[dict[str, Any]]:
         """ Generates a collection of all nodes regardless of group
@@ -37,9 +61,9 @@ class GroupNodeMediator:
         Returns:
             list[dict[str, Any]]: Collection of all replication nodes
         """
-        return [self.master_node] + self.children_nodes
+        return self.parent_group.nodes + self.child_group.nodes
 
-class NotImplementationException(Exception):
+class NotImplementedException(Exception):
     pass
 class ReplicationBuilder():
     """Generates SymmetricDS replication files based on JSON config
@@ -133,27 +157,27 @@ class ReplicationBuilder():
         load_only_table_triggers = ''
         for table in self.properties['tables']:
             table_trigger += f"{sql_generator.create_table_trigger(table)}\n\n"
-            if 'initial-load' in table and table['initial-load']:
+            if 'initial_load' in table and table['initial_load']:
                 load_only_table_triggers += f"{sql_generator.create_table_load_only_trigger(table)}\n\n"
 
         return table_trigger, load_only_table_triggers
 
     def build_router_query(self)  -> str:
-        arch = self.properties['project']['architecture']
+        self.parent_2_child = f'{self.mediator.parent_group.id}_2_{self.mediator.child_group.id}'
+        self.child_2_parent = f'{self.mediator.child_group.id}_2_{self.mediator.parent_group.id}'
+        self.parent_2_one_child = f'{self.mediator.parent_group.id}_2_one_{self.mediator.child_group.id}'
+        self.arch = self.properties['project']['architecture']
         router_sql = ''
 
-        if arch == 'parent->child':
-            for g in self.mediator.child_groups_id:
-                router_sql += f"{sql_generator.create_default_router(f'{self.mediator.master_group_id}_2_{g}', self.mediator.master_group_id, g)}\n\n"
-                router_sql += f"{sql_generator.create_default_router(f'{g}_2_{self.mediator.master_group_id}', g, self.mediator.master_group_id)}\n\n"
-                expression = 'STORE_ID=:EXTERNAL_ID or OLD_STORE_ID=:EXTERNAL_ID'
-                router_sql += f"{sql_generator.create_column_router(f'{self.mediator.master_group_id}_2_one_{g}', self.mediator.master_group_id, g, expression)}\n\n" #TODO Implement column router generator
-        elif arch == 'parent<-child':
-            for g in self.mediator.child_groups_id:
-                router_sql += f"{sql_generator.create_default_router(f'{self.mediator.master_group_id}_2_{g}', self.mediator.master_group_id, g)}\n\n"
-                router_sql += f"{sql_generator.create_default_router(f'{g}_2_{self.mediator.master_group_id}', g, self.mediator.master_group_id)}\n\n"
-        elif arch =='parent<->parent':
-            raise Exception('Parent to parent architecture has not been implemented')
+        if self.arch == Architecture.BIDIRECTIONAL:
+            router_sql += f"{sql_generator.create_default_router(self.parent_2_child, self.mediator.parent_group.id, self.mediator.child_group.id)}\n\n"
+            router_sql += f"{sql_generator.create_default_router(self.child_2_parent, self.mediator.child_group.id, self.mediator.parent_group.id)}\n\n"
+            expression = f'{self.mediator.child_group.id.upper()}_ID=:EXTERNAL_ID or OLD_{self.mediator.child_group.id.upper()}_ID=:EXTERNAL_ID'
+            router_sql += f"{sql_generator.create_column_router(self.parent_2_one_child, self.mediator.parent_group.id, self.mediator.child_group.id, expression)}\n\n"
+        elif self.arch == Architecture.PARENT_2_CHILD:
+            router_sql += f"{sql_generator.create_default_router(self.parent_2_child, self.mediator.parent_group.id, self.mediator.child_group.id)}\n\n"
+        elif self.arch ==Architecture.CHILD_2_PARENT:
+            router_sql += f"{sql_generator.create_default_router(self.child_2_parent, self.mediator.child_group.id, self.mediator.parent_group.id)}\n\n"
         return router_sql
         
     def build_router_trigger_queries(self):
@@ -162,27 +186,27 @@ class ReplicationBuilder():
 
         for table in self.properties['tables']:
             initial_load_router_triggers += self.build_router_initial_load_trigger_query(table)
-            if self.properties['replication-arch'] == 'bi-directional':
+            if self.arcitecture == 'parent<->parent':
                 if table['route'] == 'parent-child':
-                    router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
+                    router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.parent_2_child)}\n\n"
                 elif table['route'] == 'child-parent':
-                    router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
+                    router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.child_2_parent)}\n\n"
 
-            elif self.properties['replication-arch'] == 'parent-child':
-                 router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
+            elif self.arcitecture == 'parent->child':
+                 router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.parent_2_child)}\n\n"
 
-            elif self.properties['replication-arch'] == 'child-parent':
-                 router_triggers += f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
+            elif self.arcitecture == 'child<-parent':
+                 router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.child_2_parent)}\n\n"
 
         return router_triggers, initial_load_router_triggers
     
     def build_router_initial_load_trigger_query(self, table):
         query = ''
 
-        if 'initial-load' in table and table['initial-load'] == 1:
-            if table['initial-load-route'] == 'parent-child':
+        if 'initial_load' in table and table['initial_load'] == 1:
+            if table['initial_load_route'] == 'parent->child':
                 query = f"{sql_generator.create_router_trigger(table['name'], 'parent_2_child')}\n\n"
-            elif table['initial-load-route'] == 'child-parent':
+            elif table['initial_load_route'] == 'child->parent':
                 query = f"{sql_generator.create_router_trigger(table['name'], 'child_2_parent')}\n\n"
         
         return query
@@ -196,7 +220,7 @@ class ReplicationBuilder():
             result = ''
             parameters = {}
 
-            if node['type'] == 'parent':
+            if node['type'] == GroupType.PARENT:
                 parameters = { **self.parent_node_default_properties, **node}
             else:
                 parameters = { **self.child_node_default_properties, **node}

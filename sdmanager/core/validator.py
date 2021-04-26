@@ -64,7 +64,7 @@ class Validator():
         Returns:
             tuple[bool, str]: Validation result and message
         """
-        required_primary_keys = ['groups', 'nodes', 'replication-arch', 'channels', 'tables']
+        required_primary_keys = ['groups', 'nodes', 'arcitecture', 'channels', 'tables']
         for key in required_primary_keys:
             if not key in self.properties:
                 return False, f"'{key}' must be configured."
@@ -168,7 +168,7 @@ class Validator():
         for table in self.properties['tables']:
             for key in table_required_keys:
                 if not key in table:
-                    arch = self.properties['replication-arch']
+                    arch = self.properties['arcitecture']
                     # For master to master a route has to be specified
                     # a route as to be specified as well
                     if ( arch != 'parent-child' and arch != 'child-parent') and key in ['route'] : # table exceptions

@@ -35,7 +35,7 @@
             "url": "http://localhost:31415/sync/corp-000"
         }
     ],
-    "replication-arch": "bi-directional",
+    "arcitecture": "bi-directional",
     "channels": [
         { 
             "id": "item",
@@ -61,15 +61,15 @@
             "name": "sale_transaction",
             "channel": "sale_transaction",
             "route": "child-parent",
-            "initial-load": 1,
-            "initial-load-route": "parent-child"
+            "initial_load": 1,
+            "initial_load_route": "parent-child"
         },
         {
             "name": "sale_return_line_item",
             "channel": "sale_transaction",
             "route": "child-parent",            
-            "initial-load": 1,
-            "initial-load-route": "parent-child"
+            "initial_load": 1,
+            "initial_load_route": "parent-child"
         }
     ]
 }

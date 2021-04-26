@@ -29,8 +29,8 @@ class TestSQLGenerator(unittest.TestCase):
                 "name": "sale_transaction",
                 "channel": "sale_transaction",
                 "route": "child-parent",
-                "initial-load": 1,
-                "initial-load-route": "parent-child"
+                "initial_load": 1,
+                "initial_load_route": "parent-child"
             }), \
             "insert into sym_trigger (trigger_id,source_table_name,channel_id, sync_on_insert, sync_on_update, sync_on_delete,last_update_time,create_time) values ('sale_transaction_parent','sale_transaction','sale_transaction',0,0,0,current_timestamp,current_timestamp);")
 
