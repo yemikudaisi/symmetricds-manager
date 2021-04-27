@@ -1,6 +1,6 @@
 import configparser
 import subprocess
-from sdmanager.core import ReplicationBuilder
+from sdmanager.core import SdsManager
 import click
 
 config_parser = configparser.ConfigParser()
@@ -16,7 +16,7 @@ def cli():
 @click.option('-p', '--properties', required=True, help='Manager replication properties JSON file.')
 @click.option('-o', '--output', help="SymmetricDS files' output directory.")
 def build_files(properties, output=None):
-    builder = ReplicationBuilder(properties, output)
+    builder = SdsManager(properties, output)
     builder.generate_files();
 
 @cli.command()

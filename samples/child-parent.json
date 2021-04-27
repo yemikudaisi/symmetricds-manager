@@ -35,7 +35,7 @@
             "url": "http://localhost:31415/sync/corp-000"
         }
     ],
-    "arcitecture": "bi-directional",
+    "architecture": "bi-directional",
     "channels": [
         { 
             "id": "item",

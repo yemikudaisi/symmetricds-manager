@@ -64,7 +64,7 @@ class Validator():
         Returns:
             tuple[bool, str]: Validation result and message
         """
-        required_primary_keys = ['groups', 'nodes', 'arcitecture', 'channels', 'tables']
+        required_primary_keys = ['groups', 'architecture', 'channels', 'tables']
         for key in required_primary_keys:
             if not key in self.properties:
                 return False, f"'{key}' must be configured."
@@ -76,7 +76,7 @@ class Validator():
            return False, 'Minimum of 2 groups is required'
 
         self.groups = []
-        group_required_keys = ['id' , 'sync']
+        group_required_keys = ['id' , 'sync', 'nodes']
         for group in self.properties['groups']:
             for key in group_required_keys:
                 if not key in group:
@@ -84,6 +84,9 @@ class Validator():
             
             if not group['id']:
                 return False, 'Required group field (id) must not be empty'
+
+            if not len(group['nodes']) > 0:
+                return False, 'Groups must contain at least one node.'
             
             self.groups.append(group['id'])
 
@@ -99,8 +102,7 @@ class Validator():
     
     def validate_nodes(self) -> tuple[ bool, str]:
         
-        if len(self.properties['nodes']) < 2:
-           return False, 'Minimum of 2 nodes required.'
+        
 
         for node in self.properties['nodes']:
             result, error = self.validate_node(node)
@@ -168,7 +170,7 @@ class Validator():
         for table in self.properties['tables']:
             for key in table_required_keys:
                 if not key in table:
-                    arch = self.properties['arcitecture']
+                    arch = self.properties['architecture']
                     # For master to master a route has to be specified
                     # a route as to be specified as well
                     if ( arch != 'parent-child' and arch != 'child-parent') and key in ['route'] : # table exceptions

@@ -12,7 +12,7 @@ class TestValidator(unittest.TestCase):
         props = {
             "groups": [],
             "nodes": [],
-            'arcitecture': [],
+            'architecture': [],
             'channels': []
         }
         validator = Validator(props)
@@ -24,7 +24,7 @@ class TestValidator(unittest.TestCase):
         props = {
             "groups": [],
             "nodes": [],
-            'arcitecture': [],
+            'architecture': [],
             'channels': [],
             'tables': []
         }
