@@ -1,0 +1,75 @@
+{
+
+    "name": "VINO",
+    "architecture": "parent->child",
+    "decription": "The replication architecture from Vino Corp HQ to their stores in the field",
+    "groups": [
+        {
+            "id": "corp",
+            "description": "Akilli Corporation",
+            "sync": "P",
+            "type": 0,
+            "nodes": [
+                {
+                    "engine_name": "corp-000",
+                    "external_id": "000",
+                    "db_driver": "com.mysql.jdbc.Driver",
+                    "db_url": "jdbc:mysql://localhost/corp?tinyInt1isBit=false",
+                    "db_user": "symmetric",
+                    "db_password": "symmetric",
+                    "is_server": 1,
+                    "url": "http://localhost:31415/sync/corp-000"
+                }
+            ]
+        },
+        {
+            "id":"store",
+            "description": "Akilli branch stores",
+            "sync": "W",
+            "type": 1,
+            "nodes":[
+                {
+                    "engine_name": "store-001",
+                    "external_id": "001",
+                    "db_driver": "com.mysql.jdbc.Driver",
+                    "db_url": "jdbc:mysql://localhost/sotre?tinyInt1isBit=false",
+                    "db_user": "symmetric",
+                    "db_password": "symmetric",
+                    "url": "http://localhost:31415/sync/corp-000"
+                }
+            ]
+        }
+    ],
+    "channels": [
+        { 
+            "id": "item",
+            "decription": "Item and pricing data"
+        },
+        { 
+            "id": "sale_transaction",
+            "decription": "retail sale transactions from register"
+        }
+    ],
+    "tables": [
+        {
+            "name": "item_selling_price",
+            "channel": "item"
+        },
+        {
+            "name": "item",
+            "channel": "item"
+        },
+        {
+            "name": "sale_transaction",
+            "channel": "sale_transaction",
+            "initial_load": 1,
+            "initial_load_route": "parent->child"
+        },
+        {
+            "name": "sale_return_line_item",
+            "channel": "sale_transaction",          
+            "initial_load": 1,
+            "initial_load_route": "parent->child"
+        }
+    ]
+}
