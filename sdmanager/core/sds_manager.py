@@ -4,26 +4,7 @@ import copy
 import sys
 from string import Template
 from typing import Any
-from sdmanager.core import Validator, sql_generator, utils
-from enum import Enum
-
-class Architecture:
-    """Replication architecture types.
-    
-    note an enum, for easy serialization and deserialization
-    """
-    PARENT_2_CHILD = 0
-    CHILD_2_PARENT = 1
-    BIDIRECTIONAL = 2
-
-class GroupType:
-    """Group types
-    
-    note an enum, for easy serialization and deserialization
-    """
-    PARENT = 0
-    CHILD = 1
-    LOAD_ONLY = 2
+from sdmanager.core import Validator, sql_generator, utils, GroupType, Architecture
 
 # Output: {'name': 'Bob', 'languages': ['English', 'Fench']}
 class GroupNodeMediator:
@@ -208,16 +189,16 @@ class SdsManager():
 
         for table in self.project['tables']:
             initial_load_router_triggers += self.build_router_initial_load_trigger_query(table)
-            if self.arcitecture == 'parent<->parent':
+            if self.architecture == 'parent<->parent':
                 if table['route'] == 'parent-child':
                     router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.parent_2_child)}\n\n"
                 elif table['route'] == 'child-parent':
                     router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.child_2_parent)}\n\n"
 
-            elif self.arcitecture == 'parent->child':
+            elif self.architecture == 'parent->child':
                  router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.parent_2_child)}\n\n"
 
-            elif self.arcitecture == 'child<-parent':
+            elif self.architecture == 'child<-parent':
                  router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.child_2_parent)}\n\n"
 
         return router_triggers, initial_load_router_triggers

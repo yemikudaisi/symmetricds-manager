@@ -1,7 +1,10 @@
+from sdmanager.core import Architecture, GroupType, utils
+
+
 class Validator():
 
     def __init__(self, config):
-        self.properties = config
+        self.project = config
     
     def validate(self) -> tuple[bool, str]:
         """
@@ -66,18 +69,18 @@ class Validator():
         """
         required_primary_keys = ['groups', 'architecture', 'channels', 'tables']
         for key in required_primary_keys:
-            if not key in self.properties:
+            if not key in self.project:
                 return False, f"'{key}' must be configured."
         
         return self.success()
 
     def validate_groups(self) -> tuple[ bool, str]:
-        if len(self.properties['groups']) < 2:
+        if len(self.project['groups']) < 2:
            return False, 'Minimum of 2 groups is required'
 
         self.groups = []
         group_required_keys = ['id' , 'sync', 'nodes']
-        for group in self.properties['groups']:
+        for group in self.project['groups']:
             for key in group_required_keys:
                 if not key in group:
                     return False, f"'{key}' key is required for group configuration"
@@ -93,7 +96,7 @@ class Validator():
             if group['sync'] not in ['P', 'W', 'R']:
                 return False, 'Synchronization mode of P, W or R is required for group configuration'
         
-        group_ids = [gp['id'] for gp in self.properties['groups']]
+        group_ids = [gp['id'] for gp in self.project['groups']]
         contains_duplicates = any(group_ids.count(element) > 1 for element in group_ids)
         if contains_duplicates:
             return False, 'Group ID must be unique'
@@ -101,25 +104,24 @@ class Validator():
         return self.success()
     
     def validate_nodes(self) -> tuple[ bool, str]:
-        
-        
 
-        for node in self.properties['nodes']:
+        nodes = []
+        for group in self.project['groups']:
+            import copy
+            tmp = copy.copy([utils.append_to_dict(n, 'group_type', group['type']) for n in group['nodes']])
+            nodes.extend(tmp)
+        
+        for node in nodes:
             result, error = self.validate_node(node)
             if not result:
                 return result, error
 
-        node_groups = [node['group_id'] for node in self.properties['nodes']]
-        node_groups = list(dict.fromkeys(node_groups))
-        if len(node_groups) < 2:
-            return False, "Minimum of 2 node groups required."
-
-        node_engine_names = [n['engine_name'] for n in self.properties['nodes']]
+        node_engine_names = [n['engine_name'] for n in nodes]
         contains_duplicate_engine_name = any(node_engine_names.count(element) > 1 for element in node_engine_names)
         if contains_duplicate_engine_name:
             return False, 'Node engine name must be unique.'
         
-        node_external_id_list = [n['external_id'] for n in self.properties['nodes']]
+        node_external_id_list = [n['external_id'] for n in nodes]
         contains_duplicate_external_id= any(node_external_id_list.count(element) > 1 for element in node_external_id_list)
         if contains_duplicate_external_id:
             return False, 'Node external ID must be unique.'
@@ -135,25 +137,23 @@ class Validator():
         Returns:
             tuple[bool, str]: A tuple of validation result and message
         """
-        node_required_keys = ['engine_name', 'group_id', 'external_id', 'type', 'db_driver', 'db_url', 'db_user', 'db_password']
+        node_required_keys = ['engine_name', 'external_id', 'db_driver', 'db_url', 'db_user', 'db_password']
         for key in node_required_keys:
             if not key in node:
                 return False, f"'{key}' field is required for node configuration"
             
             if not node[key]:
                 return False, f"Required node field ({key}) must not be empty"
-            
-        if node['type'] not in ['parent', 'child', 'router']:
+        group_type: GroupType = node['group_type']
+
+        if not group_type in [GroupType.PARENT, GroupType.CHILD, GroupType.LOAD_ONLY]:
             return False, "Type of 'parent', 'child' or 'router' is required for node configurations"
         
-        if node['type'] == 'parent' and not 'url' in node:
+        if group_type == GroupType.PARENT and not 'url' in node:
                 return False, "A parent node must have a synchronization url"
         
-        if node['type'] == 'type' and not 'url' in node:
+        if group_type == GroupType.CHILD and not 'url' in node:
                 return False, "A child node must have a replication url"
-        
-        if node['group_id'] not in self.groups:
-            return False, f"Node {node['external_id']}'s assigned group '{node['group_id']}' is not in {self.groups}"
 
         return self.success()
 
@@ -166,15 +166,15 @@ class Validator():
     
     def validate_table(self) -> tuple[ bool, str]:
         # Table validation
-        table_required_keys = ['name', 'channel', 'route']
-        for table in self.properties['tables']:
+        table_required_keys = ['name', 'channel']
+        for table in self.project['tables']:
             for key in table_required_keys:
                 if not key in table:
-                    arch = self.properties['architecture']
-                    # For master to master a route has to be specified
-                    # a route as to be specified as well
-                    if ( arch != 'parent-child' and arch != 'child-parent') and key in ['route'] : # table exceptions
-                        return False, f"{table['name']}: '{key}' key is required for table configuration{arch}"
+                     return False, f"Table {table['name']} '{key}' attribute is required for all tables'"
+
+            # For master to master a route has to be specified as well
+            if self.project['architecture'] == Architecture.BIDIRECTIONAL and 'route' in table: # table exceptions
+                return False, f"Table {table['name']} 'route' key is required for table configuration '{arch}'"
             
             #TODO Code smell ? Check required keys for initial load tables
         
