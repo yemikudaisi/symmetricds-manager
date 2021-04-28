@@ -9,12 +9,14 @@ def new_object(object_name, dictionary) -> Any:
         dictionary (dict): The dictionary to be converted to an object
 
     Returns:
-        Any: [description]
+        Any: The object instance
     """
     return namedtuple(object_name, dictionary.keys())(*dictionary.values())
 
 def append_to_dict(the_dict, key, value):
     """Appends key value pair to dict
+
+    Helper function for use in list experession
 
     Args:
         the_dict (dict): The dictionary to append to

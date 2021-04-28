@@ -25,20 +25,28 @@ class GroupNodeMediator:
         """
         for g in groups:
             nodes = []
-            group = utils.new_object("Group", g)
+            import copy
+            
+            print(g); print("-"*20)
+            group = utils.new_object("Group", copy.copy(g))
+
             if group.type == GroupType.PARENT:
                 self.parent_group = group
+                g['nodes'][0]['group_id'] = g['id']
                 nodes.append(utils.new_object("Node", g['nodes'][0])) # assuming validator has ensured there is one node in master group
             else:
                 self.child_group = utils.new_object('Group', g)
                 for node in g['nodes']:
                     try:
+                        node['group_id'] = g['id']
                         nodes.append(utils.new_object('Node', node))
                     except AttributeError as e:
                         print(e)
                         print(node)
             group.nodes.clear()
             group.nodes.extend(nodes)
+            print(g); print("*"*20)
+            group = utils.new_object("Group", copy.copy(g))
         
     def __repr__(self) -> str:
         return f"parent:{self.parent_group.id}, child:{self.child_group.id}"
@@ -139,7 +147,7 @@ class SdsManager():
             for gp in groups_buffer:
                 gp_link_sql += f"{sql_generator.create_node_group_link(group['id'], gp['id'], group['sync'])}\n\n"
             
-            gp_sql += f"{sql_generator.create_node_group(group['id'], ['description'])}\n\n"
+            gp_sql += f"{sql_generator.create_node_group(group['id'], group['description'])}\n\n"
         
         return gp_sql, gp_link_sql
     
@@ -169,7 +177,7 @@ class SdsManager():
         self.parent_2_child = f'{self.mediator.parent_group.id}_2_{self.mediator.child_group.id}'
         self.child_2_parent = f'{self.mediator.child_group.id}_2_{self.mediator.parent_group.id}'
         self.parent_2_one_child = f'{self.mediator.parent_group.id}_2_one_{self.mediator.child_group.id}'
-        self.arch = self.project['project']['architecture']
+        self.arch = self.project['architecture']
         router_sql = ''
 
         if self.arch == Architecture.BIDIRECTIONAL:
@@ -189,16 +197,16 @@ class SdsManager():
 
         for table in self.project['tables']:
             initial_load_router_triggers += self.build_router_initial_load_trigger_query(table)
-            if self.architecture == 'parent<->parent':
+            if self.project['architecture'] == Architecture.BIDIRECTIONAL:
                 if table['route'] == 'parent-child':
                     router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.parent_2_child)}\n\n"
                 elif table['route'] == 'child-parent':
                     router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.child_2_parent)}\n\n"
 
-            elif self.architecture == 'parent->child':
+            elif self.project['architecture'] == Architecture.PARENT_2_CHILD:
                  router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.parent_2_child)}\n\n"
 
-            elif self.architecture == 'child<-parent':
+            elif self.project['architecture'] == Architecture.CHILD_2_PARENT:
                  router_triggers += f"{sql_generator.create_router_trigger(table['name'], self.child_2_parent)}\n\n"
 
         return router_triggers, initial_load_router_triggers
@@ -219,28 +227,37 @@ class SdsManager():
         """
         Generates property file for each node
         """
-        for node in self.project['nodes']:
+
+        nodes = []
+        for group in self.project['groups']:
+            #print(group)
+            import copy
+            nodes.extend([n for n in group['nodes']])
+
+        for node in nodes:
             result = ''
             parameters = {}
-
-            if node['type'] == GroupType.PARENT:
-                parameters = { **self.parent_node_default_attributes, **node}
+            group_type_template_file = None
+            if node.group_type == GroupType.PARENT:
+                parameters = { **self.parent_node_default_attributes, **dict(node._asdict())}
+                group_type_template_file = "parent.st"
             else:
-                parameters = { **self.child_node_default_attributes, **node}
+                parameters = { **self.child_node_default_attributes, **dict(node._asdict())}
+                group_type_template_file = "child.st"
 
             # Substite template placeholders with generated parameter
             try:
-                with open(os.path.join(os.environ['SDMANAGER_BASE_DIR'], 'templates', f"{node['type']}.st"), 'r') as template_file:
+                with open(os.path.join(os.environ['SDMANAGER_BASE_DIR'], 'templates', group_type_template_file), 'r') as template_file:
                     src = Template(template_file.read())            
                     result = src.substitute(parameters)
             except FileNotFoundError:
-                print(f"Template for {node['type']} was not found")
-            except Exception:
-                print(f"Unable to generate {node['type']} template for {node['external_id']}")
+                print(f"Template for {group_type_template_file} was not found")
+            except Exception as e:
+                print(f"Unable to generate {group_type_template_file} template for {node.external_id}. {str(e)}")
 
             if self.output_dir != None:
                 # Writes propertes file for node
-                with open(os.path.join(self.output_dir, f'{node["engine_name"]}.properties'), 'w') as node_properties_file:
+                with open(os.path.join(self.output_dir, f'{node.engine_name}.properties'), 'w') as node_properties_file:
                                 node_properties_file.writelines(result)
             else:
                 print(result)

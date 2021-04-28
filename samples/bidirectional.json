@@ -6,7 +6,7 @@
     "groups": [
         {
             "id": "corp",
-            "description": "Akilli Corporation",
+            "description": "Company Corporation",
             "sync": "P",
             "type": 0,
             "nodes": [
@@ -24,7 +24,7 @@
         },
         {
             "id":"store",
-            "description": "Akilli branch stores",
+            "description": "Company branch stores",
             "sync": "W",
             "type": 1,
             "nodes":[
