@@ -26,8 +26,7 @@ class GroupNodeMediator:
         for g in groups:
             nodes = []
             import copy
-            
-            print(g); print("-"*20)
+
             group = utils.new_object("Group", copy.copy(g))
 
             if group.type == GroupType.PARENT:
@@ -42,10 +41,8 @@ class GroupNodeMediator:
                         nodes.append(utils.new_object('Node', node))
                     except AttributeError as e:
                         print(e)
-                        print(node)
             group.nodes.clear()
             group.nodes.extend(nodes)
-            print(g); print("*"*20)
             group = utils.new_object("Group", copy.copy(g))
         
     def __repr__(self) -> str:
@@ -121,6 +118,7 @@ class SdsManager():
         try:
             with open(path_to_json) as f:
                 self.project = json.load(f)
+            self.project_file_path = path_to_json
         except Exception as e:
             sys.exit(f"Unable to upon supplied config file: {e}")
     
@@ -282,3 +280,10 @@ class SdsManager():
                 node_properties_file.writelines(result)
         else:
             print(result)
+
+    def __repr__(self):
+        repr_dict = {
+            "project file name":os.path.basename(self.project_file_path),
+            "project name":self.project['name']
+        }
+        return str(repr_dict)

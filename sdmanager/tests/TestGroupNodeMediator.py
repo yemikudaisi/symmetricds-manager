@@ -43,9 +43,15 @@ class TestGroupMediator(unittest.TestCase):
     mediator = GroupNodeMediator(group_config)
 
     def test_initialize(self):
+        """Test GroupNodeMediator initialization"""
         self.assertEqual(str(self.mediator), "parent:corp, child:store")
 
-    def test_that_group_node_is_accesible(self):
+    def test_that_parent_group_node_is_accesible(self):
+        """Tests that the child group nodes are accessible through the object property"""
+        self.assertEqual(self.mediator.parent_group.nodes[0].external_id, "000")
+
+    def test_that_child_group_node_is_accesible(self):
+        """Tests that the child group nodes are accessible through the object property"""
         self.assertEqual(self.mediator.child_group.nodes[0].external_id, "001")
 
 if __name__ == '__main__':
